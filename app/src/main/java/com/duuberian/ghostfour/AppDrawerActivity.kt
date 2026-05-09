@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ListView
@@ -26,19 +27,14 @@ class AppDrawerActivity : AppCompatActivity() {
         allApps = loadLaunchableApps()
         filteredApps = allApps.toMutableList()
 
-        adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_list_item_1,
-            filteredApps.map { it.first }
-        )
+        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, filteredApps.map { it.first })
         appsList.adapter = adapter
 
         appsList.setOnItemClickListener { _, _, position, _ ->
             val pkg = filteredApps[position].second
-            val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(launchIntent)
+            packageManager.getLaunchIntentForPackage(pkg)?.let {
+                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(it)
             }
         }
 
@@ -48,14 +44,20 @@ class AppDrawerActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {
                 val q = s?.toString()?.trim()?.lowercase().orEmpty()
                 filteredApps.clear()
-                filteredApps.addAll(
-                    if (q.isEmpty()) allApps else allApps.filter { it.first.lowercase().contains(q) }
-                )
+                filteredApps.addAll(if (q.isEmpty()) allApps else allApps.filter { it.first.lowercase().contains(q) })
                 adapter.clear()
                 adapter.addAll(filteredApps.map { it.first })
                 adapter.notifyDataSetChanged()
             }
         })
+
+        if (intent.getBooleanExtra("focus_search", false)) {
+            searchInput.requestFocus()
+            searchInput.post {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
     }
 
     private fun loadLaunchableApps(): List<Pair<String, String>> {
