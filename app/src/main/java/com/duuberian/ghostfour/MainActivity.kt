@@ -33,6 +33,10 @@ class MainActivity : AppCompatActivity() {
                 true
             }
         }
+
+        findViewById<TextView>(R.id.openDrawer).setOnClickListener {
+            startActivity(Intent(this, AppDrawerActivity::class.java))
+        }
     }
 
     override fun onResume() {
