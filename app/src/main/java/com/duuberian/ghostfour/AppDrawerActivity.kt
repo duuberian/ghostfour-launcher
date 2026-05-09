@@ -1,6 +1,7 @@
 package com.duuberian.ghostfour
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -58,15 +59,17 @@ class AppDrawerActivity : AppCompatActivity() {
     }
 
     private fun loadLaunchableApps(): List<Pair<String, String>> {
-        val intent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-        return packageManager.queryIntentActivities(intent, 0)
-            .map {
-                val label = it.loadLabel(packageManager).toString()
-                val pkg = it.activityInfo.packageName
+        val pm = packageManager
+        val installed = pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0))
+
+        return installed.mapNotNull { appInfo ->
+            val pkg = appInfo.packageName
+            val launchIntent = pm.getLaunchIntentForPackage(pkg)
+            if (launchIntent != null) {
+                val label = pm.getApplicationLabel(appInfo).toString()
                 label to pkg
-            }
+            } else null
+        }
             .distinctBy { it.second }
             .sortedBy { it.first.lowercase() }
     }
